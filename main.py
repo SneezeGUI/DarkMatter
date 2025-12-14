@@ -53,6 +53,7 @@ class Utils:
             "use_http": True,
             "use_socks4": True,
             "use_socks5": True,
+            "hide_dead": True,  # Default to True for performance
             "headless": True,
             "sources": "sources.txt"
         }
@@ -77,11 +78,8 @@ class ProxyEngine:
     @staticmethod
     def scrape(sources_file, protocols, max_threads=20):
         proxies = set()
-
-        # Prepare URL query string based on protocols
-        # Example API logic (Proxyscrape style)
         proto_str = ",".join([p for p, enabled in protocols.items() if enabled])
-        if not proto_str: proto_str = "http,socks4,socks5"  # Fallback
+        if not proto_str: proto_str = "http,socks4,socks5"
 
         if not os.path.exists(sources_file):
             with open(sources_file, "w") as f:
@@ -100,8 +98,6 @@ class ProxyEngine:
 
         def fetch(url):
             try:
-                # Basic logic: if user turned off SOCKS5, skip URLs that look like SOCKS5 lists
-                # This is heuristic; ideally APIs handle the filtering.
                 if "socks5" in url.lower() and not protocols.get("socks5"): return []
                 if "socks4" in url.lower() and not protocols.get("socks4"): return []
                 if "http" in url.lower() and not protocols.get("http"): return []
@@ -126,18 +122,15 @@ class ProxyEngine:
             "country_code": "??"
         }
 
-        # Determine protocols to check based on user settings
         check_list = []
         if "://" in proxy:
-            # Respect explicit protocol in string
             p_type = proxy.split("://")[0].lower()
             if allowed_protos.get(p_type, True):
                 check_list = [p_type]
                 clean_ip = proxy.split("://")[-1]
             else:
-                return res  # Protocol disabled by user
+                return res
         else:
-            # No protocol specified, try allowed ones
             clean_ip = proxy
             if allowed_protos.get("socks5"): check_list.append("socks5")
             if allowed_protos.get("socks4"): check_list.append("socks4")
@@ -174,7 +167,6 @@ class ProxyEngine:
         return res
 
 
-# --- Virtual Grid ---
 class VirtualGrid(ctk.CTkFrame):
     def __init__(self, master, columns, **kwargs):
         super().__init__(master, **kwargs)
@@ -228,7 +220,6 @@ class VirtualGrid(ctk.CTkFrame):
         self.draw()
 
     def get_active_objects(self):
-        # Returns the full data objects for active proxies, not just strings
         return [d for d in self.data if d['status'] == "Active"]
 
     def get_active(self):
@@ -274,7 +265,6 @@ class VirtualGrid(ctk.CTkFrame):
                                         font=("Roboto", 10))
 
 
-# --- Main App ---
 class ModernTrafficBot(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -318,9 +308,10 @@ class ModernTrafficBot(ctk.CTk):
             btn.grid(row=i + 1, column=0, sticky="ew", padx=10, pady=5)
             self.nav_btns[key] = btn
 
-        ctk.CTkLabel(self.sidebar, text="v3.0.5 Stable", text_color=COLORS["text_dim"], font=("Roboto", 10)).grid(row=5,
-                                                                                                                  column=0,
-                                                                                                                  pady=20)
+        ctk.CTkLabel(self.sidebar, text="v3.0.6 Performance", text_color=COLORS["text_dim"], font=("Roboto", 10)).grid(
+            row=5,
+            column=0,
+            pady=20)
 
     def setup_pages(self):
         self.pages = {}
@@ -363,7 +354,6 @@ class ModernTrafficBot(ctk.CTk):
         slider_row = ctk.CTkFrame(cfg_frame, fg_color="transparent")
         slider_row.pack(fill="x", padx=10, pady=10)
 
-        # Threads with Label Feedback
         t_frame = ctk.CTkFrame(slider_row, fg_color="transparent")
         t_frame.pack(side="left", fill="x", expand=True)
 
@@ -375,7 +365,6 @@ class ModernTrafficBot(ctk.CTk):
         self.slider_threads.set(self.settings.get("threads", 5))
         self.slider_threads.pack(fill="x", pady=5)
 
-        # Viewtime with Label Feedback
         v_frame = ctk.CTkFrame(slider_row, fg_color="transparent")
         v_frame.pack(side="left", fill="x", expand=True, padx=20)
 
@@ -414,7 +403,6 @@ class ModernTrafficBot(ctk.CTk):
         ctk.CTkButton(r1, text="Export Active", width=100, fg_color="#F39C12", command=self.export_active).pack(
             side="right", padx=5)
 
-        # RESTORED: Protocol Selectors
         proto_frm = ctk.CTkFrame(tools, fg_color="transparent")
         proto_frm.pack(fill="x", padx=10, pady=5)
 
@@ -430,7 +418,11 @@ class ModernTrafficBot(ctk.CTk):
         if self.settings.get("use_socks5", True): self.chk_socks5.select()
         self.chk_socks5.pack(side="left", padx=10)
 
-        # Counters Row
+        # NEW: Hide Dead Checkbox
+        self.chk_hide_dead = ctk.CTkCheckBox(proto_frm, text="Hide Dead", width=70, fg_color=COLORS["danger"])
+        if self.settings.get("hide_dead", True): self.chk_hide_dead.select()
+        self.chk_hide_dead.pack(side="right", padx=10)
+
         r_counts = ctk.CTkFrame(tools, fg_color="transparent")
         r_counts.pack(fill="x", padx=10, pady=5)
 
@@ -441,7 +433,6 @@ class ModernTrafficBot(ctk.CTk):
                                              text_color=COLORS["text_dim"], font=("Roboto", 11))
         self.lbl_proto_counts.pack(side="right", padx=15)
 
-        # Row 2: Settings
         r2 = ctk.CTkFrame(tools, fg_color=COLORS["bg"])
         r2.pack(fill="x", padx=10, pady=(0, 10))
 
@@ -484,7 +475,6 @@ class ModernTrafficBot(ctk.CTk):
         self.chk_headless.pack(anchor="w", padx=20, pady=20)
         ctk.CTkButton(card, text="Save Configuration", command=self.save_cfg).pack(anchor="w", padx=20, pady=(0, 20))
 
-    # --- Core Logic ---
     def log(self, msg):
         self.log_box.configure(state="normal")
         self.log_box.insert("end", f"[{time.strftime('%H:%M:%S')}] {msg}\n")
@@ -495,7 +485,6 @@ class ModernTrafficBot(ctk.CTk):
         f = filedialog.askopenfilename()
         if f:
             try:
-                # CLEAR EXISTING DATA
                 self.proxies = []
                 self.buffer = []
                 self.proxy_grid.clear()
@@ -510,13 +499,11 @@ class ModernTrafficBot(ctk.CTk):
                 pass
 
     def export_active(self):
-        # AUTOMATIC CATEGORIZED EXPORT
         active_objs = self.proxy_grid.get_active_objects()
 
         if not active_objs:
             return self.log("No active proxies to export.")
 
-        # Ensure 'proxies' directory exists
         if not os.path.exists("proxies"):
             os.makedirs("proxies")
 
@@ -524,26 +511,19 @@ class ModernTrafficBot(ctk.CTk):
         http_list = []
 
         for p in active_objs:
-            # Reconstruct standard proxy string
             p_str = f"{p['type'].lower()}://{p['ip']}:{p['port']}"
-
             if "SOCKS" in p['type']:
                 socks_list.append(p_str)
             else:
                 http_list.append(p_str)
 
         try:
-            # Write SOCKS
             if socks_list:
-                with open("proxies/socks.txt", "w") as f:
-                    f.write("\n".join(socks_list))
-
-            # Write HTTP
+                with open("proxies/socks.txt", "w") as f: f.write("\n".join(socks_list))
             if http_list:
-                with open("proxies/http.txt", "w") as f:
-                    f.write("\n".join(http_list))
+                with open("proxies/http.txt", "w") as f: f.write("\n".join(http_list))
 
-            self.log(f"Auto-Exported: {len(socks_list)} SOCKS, {len(http_list)} HTTP to 'proxies/' folder.")
+            self.log(f"Auto-Exported: {len(socks_list)} SOCKS, {len(http_list)} HTTP.")
         except Exception as e:
             self.log(f"Export Error: {e}")
 
@@ -553,7 +533,6 @@ class ModernTrafficBot(ctk.CTk):
         except:
             th = 20
 
-        # Get protocols
         protos = {
             "http": self.chk_http.get(),
             "socks4": self.chk_socks4.get(),
@@ -572,13 +551,8 @@ class ModernTrafficBot(ctk.CTk):
         threading.Thread(target=_job, daemon=True).start()
 
     def update_proxy_stats(self):
-        # Trigger stats update based on Grid data (which comes from buffer)
-        # Note: If Grid is empty but self.proxies has data (pre-check), we use self.proxies for total
         total = len(self.proxies)
         self.lbl_loaded.configure(text=f"Total: {total}")
-
-        # We can also count from grid if checked, or regex parse raw list if unchecked
-        # For simple UX, we show grid counts if available
         counts = self.proxy_grid.get_counts()
         self.lbl_proto_counts.configure(
             text=f"HTTP: {counts['HTTP']} | SOCKS4: {counts['SOCKS4']} | SOCKS5: {counts['SOCKS5']}")
@@ -601,6 +575,7 @@ class ModernTrafficBot(ctk.CTk):
             to = int(self.entry_timeout.get())
             th = int(self.entry_check_threads.get())
             total = len(self.proxies)
+            hide_dead = self.chk_hide_dead.get()
 
             allowed_protos = {
                 "http": self.chk_http.get(),
@@ -619,8 +594,10 @@ class ModernTrafficBot(ctk.CTk):
                 if not self.testing: break
                 try:
                     res = f.result()
-                    # Only add to buffer if protocol matches what we wanted
-                    # (ProxyEngine.check already handles most, but we double check for 'status')
+
+                    # PERFORMANCE: If Hide Dead is on and status is dead, skip buffering
+                    if hide_dead and res["status"] != "Active":
+                        continue
 
                     raw = res["proxy"].split("://")[-1]
                     ip, port = (raw.split(":")[0], raw.split(":")[1]) if ":" in raw else (raw, "")
@@ -656,26 +633,21 @@ class ModernTrafficBot(ctk.CTk):
 
         self.log(f"Starting attack: {threads} threads on {url}")
 
-        # Get all active proxies
         all_active = self.proxy_grid.get_active_objects()
 
-        # Filter based on Checkbox Settings
         allowed = []
         if self.chk_http.get(): allowed.append("HTTP")
-        if self.chk_http.get(): allowed.append("HTTPS")  # Handle HTTPS as HTTP logic
+        if self.chk_http.get(): allowed.append("HTTPS")
         if self.chk_socks4.get(): allowed.append("SOCKS4")
         if self.chk_socks5.get(): allowed.append("SOCKS5")
 
-        # Create final list for requests (strings)
         active_proxies = []
         for p in all_active:
-            # Check if proxy type contains any allowed string (e.g. "SOCKS5" in "SOCKS5")
-            # This is a loose match to catch "HTTP", "HTTPS", "SOCKS5", etc.
             if any(a in p['type'] for a in allowed):
                 active_proxies.append(f"{p['type'].lower()}://{p['ip']}:{p['port']}")
 
         if not active_proxies and all_active:
-            self.log(f"Warning: Proxies are active but filtered out by protocol settings.")
+            self.log(f"Warning: Proxies active but filtered by protocol.")
         elif not active_proxies:
             self.log("No active proxies found.")
 
@@ -718,6 +690,7 @@ class ModernTrafficBot(ctk.CTk):
             self.settings["use_http"] = self.chk_http.get()
             self.settings["use_socks4"] = self.chk_socks4.get()
             self.settings["use_socks5"] = self.chk_socks5.get()
+            self.settings["hide_dead"] = self.chk_hide_dead.get()
             self.settings["headless"] = self.chk_headless.get()
             Utils.save_settings(self.settings)
             self.log("Settings saved.")
@@ -729,7 +702,6 @@ class ModernTrafficBot(ctk.CTk):
             chunk = self.buffer[:40]
             del self.buffer[:40]
             for i in chunk: self.proxy_grid.add(i)
-            # Update protocol counts occasionally as grid populates
             if len(self.buffer) % 5 == 0: self.update_proxy_stats()
 
         self.lbl_stats["req"].configure(text=str(self.stats["req"]))
