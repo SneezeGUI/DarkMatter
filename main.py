@@ -473,12 +473,12 @@ class TrafficBotProApp(ctk.CTk):
 
         self.proxy_results_grid = ctk.CTkScrollableFrame(results_frame, label_text="Proxy Test Results")
         self.proxy_results_grid.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
-        self.proxy_results_grid.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
+        self.proxy_results_grid.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
 
-        headers = ["IP", "Port", "Status", "Ping (ms)", "Anonymity"]
+        # --- MODIFIED HEADERS ---
+        headers = ["IP", "Port", "Protocol", "Status", "Ping (ms)", "Anonymity"]
         for i, header in enumerate(headers):
-            ctk.CTkLabel(self.proxy_results_grid, text=header, font=("Roboto Medium", 12)).grid(row=0, column=i, padx=5,
-                                                                                                pady=5)
+            ctk.CTkLabel(self.proxy_results_grid, text=header, font=("Roboto Medium", 12)).grid(row=0, column=i, padx=5,                                                                                                pady=5)
 
     def build_settings_frame(self):
         settings_frame = self.frames["settings"]
@@ -895,7 +895,7 @@ class TrafficBotProApp(ctk.CTk):
         self.after(0, self.update_tester_stats)
 
     def add_proxy_result_to_grid(self, result):
-        row_index = len(self.proxy_results_grid.winfo_children()) // 5 + 1
+        row_index = len(self.proxy_results_grid.winfo_children()) // 6 + 1
         try:
             ip_port = result["proxy"].split("://")[-1].split("@")[-1]
             ip, port = ip_port.split(":")
@@ -903,12 +903,21 @@ class TrafficBotProApp(ctk.CTk):
             ip, port = result["proxy"], "-"
 
         status_color = "#2CC985" if result["status"] == "Active" else "#e74c3c"
-        vals = [ip, port, result["status"], str(result["speed"]) if result["status"] == "Active" else "-",
-                result["anonymity"]]
+
+        # --- NEW VALUES LIST WITH PROTOCOL ---
+        vals = [
+            ip,
+            port,
+            result.get("type", "Unknown"),  # Protocol Column
+            result["status"],  # Status Column
+            str(result["speed"]) if result["status"] == "Active" else "-",
+            result["anonymity"]
+        ]
 
         for i, val in enumerate(vals):
             lbl = ctk.CTkLabel(self.proxy_results_grid, text=val)
-            if i == 2: lbl.configure(text_color=status_color)
+            if i == 3:  # Status is now at index 3
+                lbl.configure(text_color=status_color)
             lbl.grid(row=row_index, column=i, padx=5, pady=2)
 
     def clear_proxy_results(self):
@@ -924,16 +933,35 @@ class TrafficBotProApp(ctk.CTk):
         export_dir = "proxies"
         os.makedirs(export_dir, exist_ok=True)
 
-        grouped = {}
+        # --- SEPARATE SORTING LOGIC ---
+        grouped = {
+            "http": [],
+            "https": [],
+            "socks4": [],
+            "socks5": []
+        }
+
         for p in self.tested_proxies:
-            ptype = "socks4_5" if "SOCKS" in p["type"] else "http_https"
-            grouped.setdefault(ptype, []).append(p["proxy"])
+            ptype = p.get("type", "HTTP").lower()
 
-        for ptype, proxies in grouped.items():
-            with open(os.path.join(export_dir, f"{ptype}.txt"), "w") as f:
-                f.write("\n".join(proxies))
-        self.log_message(f"Exported to /{export_dir}", "success", "tester")
+            # Categorize based on detected type
+            if "socks5" in ptype:
+                grouped["socks5"].append(p["proxy"])
+            elif "socks4" in ptype:
+                grouped["socks4"].append(p["proxy"])
+            elif "https" in ptype:
+                grouped["https"].append(p["proxy"])
+            else:
+                # Default to HTTP if strictly http or unknown
+                grouped["http"].append(p["proxy"])
 
+        # Write to separate files
+        for name, proxies in grouped.items():
+            if proxies:
+                with open(os.path.join(export_dir, f"{name}.txt"), "w") as f:
+                    f.write("\n".join(proxies))
+
+        self.log_message(f"Exported separate lists to /{export_dir}", "success", "tester")
 
 if __name__ == "__main__":
     app = TrafficBotProApp()

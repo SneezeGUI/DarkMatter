@@ -1,17 +1,17 @@
 {
     "url": "https://demented.cc",
     "threads": "10",
-    "visits": "540",
+    "visits": "100",
     "headless": true,
     "min_time": "15",
     "max_time": "60",
     "proxy_source": "File",
-    "proxy_file_path": "O:/Development/Web-Apps/web-traffic-tool/proxies/http_https.txt",
+    "proxy_file_path": "O:/Development/Web-Apps/web-traffic-tool/proxies/gsa.txt",
     "proxy_url": "",
     "proxy_protocol": "HTTP",
     "manual_proxies": "##Shadow Socks##\nsocks5://192.168.50.110:1080\n\n##",
     "test_url": "http://httpbin.org/get",
-    "test_timeout": "6",
-    "test_threads": "50",
+    "test_timeout": "5",
+    "test_threads": "100",
     "test_gateway": ""
 }
