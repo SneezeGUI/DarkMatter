@@ -49,3 +49,94 @@ SUCCESS_STATUS_CODES = [200, 201, 301, 302]
 
 # Dead proxy sentinel speed value
 DEAD_PROXY_SPEED_MS = 9999
+
+# Browser-consistent headers for use with curl_cffi impersonation
+# Note: User-Agent is NOT included - curl_cffi sets it automatically based on impersonate value
+BROWSER_HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Cache-Control": "max-age=0",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+}
+
+# Common referer sources for traffic diversity
+DEFAULT_REFERERS = [
+    "https://www.google.com/",
+    "https://www.bing.com/",
+    "https://duckduckgo.com/",
+    "https://www.google.co.uk/",
+    "https://search.yahoo.com/",
+]
+
+# =============================================================================
+# Browser Engine Constants (Playwright-based)
+# =============================================================================
+
+# Browser context limits (RAM-constrained)
+DEFAULT_BROWSER_CONTEXTS = 5
+MIN_BROWSER_CONTEXTS = 1
+MAX_BROWSER_CONTEXTS = 10
+
+# Protection bypass timing
+CLOUDFLARE_WAIT_SECONDS = 10
+CAPTCHA_TIMEOUT_SECONDS = 120
+
+# Common browser viewports for realistic traffic
+BROWSER_VIEWPORTS = [
+    (1920, 1080),  # Full HD (most common)
+    (1366, 768),   # HD laptop
+    (1536, 864),   # Surface/laptop scaled
+    (1440, 900),   # MacBook
+    (2560, 1440),  # QHD monitor
+]
+
+# Cloudflare detection markers in page content
+CLOUDFLARE_MARKERS = [
+    "cf-browser-verification",
+    "challenge-platform",
+    "__cf_chl_opt",
+    "Checking your browser",
+    "cf_chl_prog",
+    "Just a moment...",
+    "Enable JavaScript and cookies",
+]
+
+# Captcha detection markers
+CAPTCHA_MARKERS = [
+    "g-recaptcha",
+    "cf-turnstile",
+    "h-captcha",
+    "data-sitekey",
+    "grecaptcha",
+]
+
+# Akamai Bot Manager detection markers
+AKAMAI_MARKERS = [
+    "_abck",
+    "bm_sz",
+    "ak_bmsc",
+    "akamai",
+]
+
+# Browser error patterns
+BROWSER_ERROR_PATTERNS = [
+    "net::ERR_",
+    "Timeout",
+    "Navigation failed",
+    "Target closed",
+    "Protocol error",
+]
+
+# User agents for browser mode (matched to viewport for consistency)
+BROWSER_USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+]

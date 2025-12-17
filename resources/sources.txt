@@ -1,129 +1,163 @@
-# =============================================================================
-# High-Quality Proxy Sources - Updated Dec 2024
-# =============================================================================
-# These sources are actively maintained and provide fresh, working proxies.
-# Lines starting with # are ignored.
-# =============================================================================
-
-# =============================================================================
-# TIER 1: API Services (Most Reliable, Pre-filtered)
-# =============================================================================
-
-# ProxyScrape API - Updates every 5 minutes, highly reliable
+http://aceproxy.org/
+http://amicopirata.altervista.org/
+http://balamut.me/
+http://caretofun.net/
+http://chiproxies.com/
+http://fauvet.net/
+http://fosy.club/
+http://ipidentify.net/
+http://ipspool.info/
+http://jiujiu.com/
+http://listport.net/
+http://m3ukodi.com/
+http://marosdil.com/
+http://neossah.com/
+http://nntime.com/
+http://papaproxy.net/
+http://portaissh.com/
+http://proxyaale.biz/
+http://proxybros.com/
+http://proxycompass.com/
+http://proxydb.net/
+http://proxyforyoumaster.blogspot.com/
+http://proxylists.de/
+http://proxymania.su/
+http://proxysharp.com/
+http://proxy-spider.com/
+http://proxyverity.com/
+http://proxywiki.info/
+http://pubproxy.com/
+http://radixdns.net/
+http://replicounts.org/
+http://shopsocks5.forumvi.com/
+http://speedssh.net/
+http://te-home.net/
+http://teleproxy.org/
+http://un-proxy.pro/
+http://uu-proxy.com/
+http://vibeproxies.net/
+http://vistar.space/
+http://white55.ru/
+http://xn--r1a.website/
+https://advanced.name/
+https://api.ditatompel.com/
 https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=all&anonymity=all
 https://api.proxyscrape.com/v2/?request=getproxies&protocol=socks4&timeout=10000&country=all
 https://api.proxyscrape.com/v2/?request=getproxies&protocol=socks5&timeout=10000&country=all
-
-# Proxy-List.Download API
-https://www.proxy-list.download/api/v1/get?type=http
-https://www.proxy-list.download/api/v1/get?type=https
-https://www.proxy-list.download/api/v1/get?type=socks4
-https://www.proxy-list.download/api/v1/get?type=socks5
-
-# =============================================================================
-# TIER 2: CDN-Hosted Lists (Fast, Reliable)
-# =============================================================================
-
-# Proxifly - Updates every 5 minutes, CDN hosted
+https://best-proxy.com/
+https://bytessh.com/
 https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/protocols/http/data.txt
 https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/protocols/socks4/data.txt
 https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/protocols/socks5/data.txt
-
-# Vakhov Fresh Proxy List - GitHub Pages hosted
-https://vakhov.github.io/fresh-proxy-list/http.txt
-https://vakhov.github.io/fresh-proxy-list/https.txt
-https://vakhov.github.io/fresh-proxy-list/socks4.txt
-https://vakhov.github.io/fresh-proxy-list/socks5.txt
-
-# =============================================================================
-# TIER 3: GitHub Raw Lists (Daily/Hourly Updates)
-# =============================================================================
-
-# TheSpeedX SOCKS-List - Very popular, 46k+ proxies, daily updates
-https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt
-https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt
-https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt
-
-# ErcinDedeoglu - Hourly updates, verified proxies
+https://cyber-gateway.net/
+https://databay.com/
+https://ditatompel.com/
+https://fineproxy.org/
+https://freeproxylist.org/
+https://free-proxy-list.net/
+https://free-proxy-list.net/proxy-list-download.php?type=http
+https://freevpn4you.net/
+https://getfreeproxy.com/
+https://github.com/5tob/free-proxy-list
+https://github.com/Argh94/Proxy-List
+https://github.com/arunsakthivel96/proxy-list
+https://github.com/claude89757/free-proxy-list
+https://github.com/databay-labs/proxy-list
+https://github.com/dxs1256/free-proxy-list
+https://github.com/elliottophellia/proxy-list
+https://github.com/Elorn2000/proxy-list
+https://github.com/GoekhanDev/proxy-list
+https://github.com/I-r-a-j/Proxy-List
+https://github.com/iplocate/free-proxy-list
+https://github.com/karams81/proxy-list
+https://github.com/Kutlu0319/Free-Proxy-List
+https://github.com/MdSagorMunshi/Proxy-List
+https://github.com/MrMarble/proxy-list
+https://github.com/pikmok-pc/proxy-list
+https://github.com/TheLime1/Proxy-List
+https://github.com/variableninja/proxy-list
+https://github.com/vmheaven/free-proxy-list
+https://github.com/Yorunsus/free-proxy-list
+https://github.com/zol9527/free-proxy-list
+https://hide.mn/
+https://hidemium.io/
+https://hideme.ru/
+https://hidemy.name/en/proxy-list/
+https://hidemyname.net/
+https://hide-my-name.site/
+https://httptunnel.ge/ProxyListForFree.aspx
+https://ipaddress.is/
+https://logicfish.substack.com/
+https://m.vk.com/
+https://patchloop.github.io/
+https://proxies-api.onrender.com/
+https://proxy2.ucrypte.com/
+https://proxy5.net/
+https://proxy-checker.net/
+https://proxy-daily.com/proxy/http.txt
+https://proxylister.com/
+https://proxy-list.org/
+https://proxymix.net/
+https://proxynest.com/
+https://proxy.scdn.io/
+https://proxy-store.com/
+https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt
 https://raw.githubusercontent.com/ErcinDedeoglu/proxies/main/proxies/http.txt
 https://raw.githubusercontent.com/ErcinDedeoglu/proxies/main/proxies/https.txt
 https://raw.githubusercontent.com/ErcinDedeoglu/proxies/main/proxies/socks4.txt
 https://raw.githubusercontent.com/ErcinDedeoglu/proxies/main/proxies/socks5.txt
-
-# prxchk - Updates every 10 minutes, highly anonymous
-https://raw.githubusercontent.com/prxchk/proxy-list/main/http.txt
-https://raw.githubusercontent.com/prxchk/proxy-list/main/socks4.txt
-https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt
-
-# monosans - Well maintained, daily updates
-https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt
-https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt
-https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt
-
-# jetkai - Hourly updates, pre-tested online proxies
+https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt
 https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-http.txt
 https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-https.txt
 https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-socks4.txt
 https://raw.githubusercontent.com/jetkai/proxy-list/main/online-proxies/txt/proxies-socks5.txt
-
-# hookzof - SOCKS5 specialist, includes Telegram proxies
-https://raw.githubusercontent.com/hookzof/socks5_list/master/proxy.txt
-
-# officialputuid/KangProxy - Daily validated
+https://raw.githubusercontent.com/mertguvencli/http-proxy-list/main/proxy-list/data.txt
+https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt
+https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt
+https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt
+https://raw.githubusercontent.com/MuRongPIG/Proxy-Master/main/http.txt
+https://raw.githubusercontent.com/MuRongPIG/Proxy-Master/main/socks4.txt
+https://raw.githubusercontent.com/MuRongPIG/Proxy-Master/main/socks5.txt
 https://raw.githubusercontent.com/officialputuid/KangProxy/KangProxy/http/http.txt
 https://raw.githubusercontent.com/officialputuid/KangProxy/KangProxy/https/https.txt
 https://raw.githubusercontent.com/officialputuid/KangProxy/KangProxy/socks4/socks4.txt
 https://raw.githubusercontent.com/officialputuid/KangProxy/KangProxy/socks5/socks5.txt
-
-# ShiftyTR - Hourly updates
+https://raw.githubusercontent.com/prxchk/proxy-list/main/http.txt
+https://raw.githubusercontent.com/prxchk/proxy-list/main/socks4.txt
+https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt
+https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/http.txt
+https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/socks4.txt
+https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/socks5.txt
+https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt
+https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS4_RAW.txt
+https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt
 https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt
 https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/https.txt
 https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/socks4.txt
 https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/socks5.txt
-
-# roosterkid/openproxylist
-https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt
-https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS4_RAW.txt
-https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt
-
-# clarketm - Daily updates, curated list
-https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt
-
-# mertguvencli - HTTP specialist
-https://raw.githubusercontent.com/mertguvencli/http-proxy-list/main/proxy-list/data.txt
-
-# sunny9577 - Multi-protocol
 https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/proxies.txt
-
-# rdavydov - Regular updates
-https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/http.txt
-https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/socks4.txt
-https://raw.githubusercontent.com/rdavydov/proxy-list/main/proxies/socks5.txt
-
-# MuRongPIG - Chinese source, good Asian coverage
-https://raw.githubusercontent.com/MuRongPIG/Proxy-Master/main/http.txt
-https://raw.githubusercontent.com/MuRongPIG/Proxy-Master/main/socks4.txt
-https://raw.githubusercontent.com/MuRongPIG/Proxy-Master/main/socks5.txt
-
-# zloi-user - Additional coverage
+https://raw.githubusercontent.com/TheLime1/Proxy-List/main/http.txt
+https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt
+https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks4.txt
+https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt
 https://raw.githubusercontent.com/zloi-user/hideip.me/main/http.txt
 https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks4.txt
 https://raw.githubusercontent.com/zloi-user/hideip.me/main/socks5.txt
-
-# =============================================================================
-# TIER 4: Additional Sources
-# =============================================================================
-
-# SpysOne - Long-running reliable source
+https://sockslist.us/
 https://spys.me/proxy.txt
 https://spys.me/socks.txt
-
-# Proxy Daily
-https://proxy-daily.com/proxy/http.txt
-
-# Free Proxy CZ
-https://free-proxy-list.net/proxy-list-download.php?type=http
-
-# =============================================================================
-# END OF SOURCES
-# =============================================================================
+https://sunny9577.github.io/
+https://t.me/
+https://uproxypool.com/
+https://vakhov.github.io/fresh-proxy-list/http.txt
+https://vakhov.github.io/fresh-proxy-list/https.txt
+https://vakhov.github.io/fresh-proxy-list/socks4.txt
+https://vakhov.github.io/fresh-proxy-list/socks5.txt
+https://www.google-proxy.net/
+https://www.iplocation.net/
+https://www.proxy-list.download/api/v1/get?type=http
+https://www.proxy-list.download/api/v1/get?type=https
+https://www.proxy-list.download/api/v1/get?type=socks4
+https://www.proxy-list.download/api/v1/get?type=socks5
+https://www.socks-proxy.net/
+https://www.sslproxies.org/

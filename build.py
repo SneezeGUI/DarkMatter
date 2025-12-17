@@ -51,10 +51,10 @@ def build_executable():
         # Create a zip file for distribution
         print("Creating distribution archive...")
         import zipfile
-        with zipfile.ZipFile("DarkMatterBot_v3.1.2.zip", "w", zipfile.ZIP_DEFLATED) as zipf:
+        with zipfile.ZipFile("DarkMatterBot_v3.6.0.zip", "w", zipfile.ZIP_DEFLATED) as zipf:
             zipf.write("dist/DarkMatterBot.exe", "DarkMatterBot.exe")
 
-        print("Archive created: DarkMatterBot_v3.1.2.zip")
+        print("Archive created: DarkMatterBot_v3.6.0.zip")
         
     except subprocess.CalledProcessError as e:
         print(f"\nBuild failed: {e}")

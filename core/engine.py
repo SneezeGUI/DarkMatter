@@ -1,12 +1,13 @@
 import asyncio
 import random
 import logging
-from typing import List, Callable, Optional, Dict
+from typing import List, Callable, Optional
 from curl_cffi import requests
-from .header_manager import HeaderManager
 from .models import TrafficConfig, ProxyConfig, TrafficStats
 from .constants import (
     BROWSER_IMPERSONATIONS,
+    BROWSER_HEADERS,
+    DEFAULT_REFERERS,
     REQUEST_TIMEOUT_SECONDS,
     PROXY_ERROR_CODES,
     SUCCESS_STATUS_CODES,
@@ -22,22 +23,6 @@ class AsyncTrafficEngine:
         self.running = False
         self._stop_event = asyncio.Event()
         self._initial_proxy_count = len(proxies)
-        self._sessions: Dict[str, requests.AsyncSession] = {}  # Session pool keyed by impersonation
-
-    async def _get_session(self, impersonate: str) -> requests.AsyncSession:
-        """Get or create a session for the given impersonation."""
-        if impersonate not in self._sessions:
-            self._sessions[impersonate] = requests.AsyncSession(impersonate=impersonate)
-        return self._sessions[impersonate]
-
-    async def _close_sessions(self):
-        """Close all sessions in the pool."""
-        for session in self._sessions.values():
-            try:
-                await session.close()
-            except Exception:
-                pass
-        self._sessions.clear()
 
     async def _make_request(self):
         """Performs a single visit using a random proxy and browser impersonation."""
@@ -66,22 +51,22 @@ class AsyncTrafficEngine:
         # Randomize impersonation
         impersonate = random.choice(BROWSER_IMPERSONATIONS)
 
+        session = None
         try:
             self.stats.active_threads += 1
             if self.on_update:
                 self.stats.active_proxies = len(self.proxies)
                 self.on_update(self.stats)
 
-            # Reuse session from pool
-            session = await self._get_session(impersonate)
+            # Create fresh session for each request (clean cookies/TLS state per "user")
+            session = requests.AsyncSession(impersonate=impersonate)
 
             # Set proxy for this request
             proxies_dict = {"http": proxy, "https": proxy} if proxy else None
 
-            # Simulate human-like headers
-            headers = HeaderManager.get_random_headers()
-            if "Referer" not in headers:
-                headers["Referer"] = "https://www.google.com/"
+            # Use browser-consistent headers (User-Agent is set by curl_cffi impersonate)
+            headers = BROWSER_HEADERS.copy()
+            headers["Referer"] = random.choice(DEFAULT_REFERERS)
 
             logging.debug(f"Request to {self.config.target_url} via {impersonate}")
 
@@ -129,6 +114,12 @@ class AsyncTrafficEngine:
             else:
                 logging.debug(f"Request Error: {err_msg}")
         finally:
+            # Clean up session
+            if session:
+                try:
+                    await session.close()
+                except Exception:
+                    pass
             self.stats.active_threads -= 1
             self.stats.total_requests += 1
             if self.on_update:
@@ -165,8 +156,6 @@ class AsyncTrafficEngine:
                 await asyncio.wait(tasks, timeout=5)
 
         finally:
-            # Clean up session pool
-            await self._close_sessions()
             logging.info("Engine stopped.")
 
     def stop(self):

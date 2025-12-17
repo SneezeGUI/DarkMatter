@@ -16,6 +16,7 @@ build/
 
 # Proxies
 proxies/
+resources/proxies.json
 
 # Settings
 settings.json
@@ -23,3 +24,9 @@ settings.json
 # Python cache
 __pycache__/
 *.pyc
+
+# Temporary files
+*.tmp
+
+# Large Data Files
+resources/GeoLite2-City.mmdb
