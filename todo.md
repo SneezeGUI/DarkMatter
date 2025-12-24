@@ -84,10 +84,24 @@
 
 ## In Progress
 
-### Proxy Checking Enhancement
-- [ ] **Full proxy chaining** - Route checks through system proxy to hide IP from proxy operators (requires SOCKS5 tunneling)
+### v3.7.0 Master/Slave Architecture
+- [x] **Phase 1: Communication Layer** - WebSocket server/client with HMAC authentication *(2025-12-23)*
+- [ ] **Phase 2: Headless Client** - `slave.py` entry point for Linux nodes
+- [ ] **Phase 3: Master GUI Components** - Master control page and scanner results
+- [ ] **Phase 4: SSH/RDP Scanner** - Network scanning capabilities
+- [ ] **Phase 5: Linux Deployment** - systemd service and Ansible playbooks
+- [ ] **Phase 6: Integration & Testing** - End-to-end verification
 
 ---
+
+## Completed (v3.6.3 - 2025-12-23)
+
+### Code Quality & v3.7.0 Preparation
+- [x] **Fixed 185+ linting errors** - Type annotations, import sorting, unused variables, try-except patterns
+- [x] **All linting clean** - 0 ruff errors, modern Python type syntax
+- [x] **Proxy chaining preparation** - Added `system_proxy` parameter for future SOCKS5 tunneling
+- [x] **Documentation** - CLAUDE.MD project context, v3.7.0-plan.md (1,745 lines)
+- [x] **WebSocket dependencies** - Added websockets>=12.0 and asyncssh>=2.14.0
 
 ## Completed (v3.6.5 - 2025-12-22)
 
@@ -119,12 +133,12 @@
 
 ## Backlog
 
-### v3.7.0 Master/Slave (Next Major)
-- [ ] **Communication Layer:** WebSocket (aiohttp) with HMAC authentication
-- [ ] **Headless Client:** `slave.py` for Linux nodes
-- [ ] **Master GUI:** `ui/pages/master_control.py` for managing slaves
-- [ ] **Scanner Module:** SSH/RDP detection and credential testing
-- [ ] **Deployment:** systemd service files and install scripts
+### v3.7.0 Master/Slave (In Progress - See "In Progress" section above)
+- [x] **Communication Layer:** WebSocket with HMAC authentication *(Phase 1 Complete)*
+- [ ] **Headless Client:** `slave.py` for Linux nodes *(Phase 2)*
+- [ ] **Master GUI:** `ui/pages/master_control.py` for managing slaves *(Phase 3)*
+- [ ] **Scanner Module:** SSH/RDP detection and credential testing *(Phase 4)*
+- [ ] **Deployment:** systemd service files and install scripts *(Phase 5)*
 
 ### Codebase Structure & Quality
 - [ ] **Standardize Testing:** Add more tests for engine logic and validators
@@ -146,15 +160,15 @@
 - [ ] **Session Export:** Export session statistics (Success/Fail/Proxy Count) to CSV/JSON
 
 ### Master/Slave & Security Features (v3.7.0)
-- [ ] **Key Exchange:** Implement secure key-based authentication (e.g., RSA/Secret Key)
-- [ ] **Headless Client:** Develop CLI (`slave.py`) for proxy scraping and IP/port scanning
-- [ ] **SSH/RDP Scanner:** Integrate modules for SSH/RDP detection and brute-force/credential scanning
-- [ ] **Master GUI:** Design separate page for discovered SSH/RDP servers
-- [ ] **Data Sync:** Establish reliable data synchronization between master and slave (WebSockets)
-- [ ] **Error Handling:** Implement robust error reporting and retry mechanisms
-- [ ] **Configuration:** Define master/slave configuration parameters in Settings
-- [ ] **Testing:** Unit and integration tests for all components
-- [ ] **Deployment:** Outline deployment strategy for master/slave setups
+- [x] **Key Exchange:** HMAC-SHA256 authentication with challenge-response *(Phase 1 Complete)*
+- [x] **Data Sync:** WebSocket communication layer with message routing *(Phase 1 Complete)*
+- [x] **Testing:** 15 WebSocket tests covering auth, messaging, heartbeat, reconnection *(Phase 1 Complete)*
+- [ ] **Headless Client:** Develop CLI (`slave.py`) for proxy scraping and IP/port scanning *(Phase 2)*
+- [ ] **SSH/RDP Scanner:** Integrate modules for SSH/RDP detection and credential scanning *(Phase 4)*
+- [ ] **Master GUI:** Design separate page for discovered SSH/RDP servers *(Phase 3)*
+- [ ] **Error Handling:** Implement robust error reporting and retry mechanisms *(Phase 6)*
+- [ ] **Configuration:** Define master/slave configuration parameters in Settings *(Phase 3)*
+- [ ] **Deployment:** systemd service files, install scripts, Ansible playbooks *(Phase 5)*
 
 ---
 
