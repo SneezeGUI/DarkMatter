@@ -50,6 +50,14 @@ class ConnectedClient:
     session_token: str | None = None
     extra_info: dict = field(default_factory=dict)
 
+    def __hash__(self):
+        return hash(self.client_id)
+
+    def __eq__(self, other):
+        if isinstance(other, ConnectedClient):
+            return self.client_id == other.client_id
+        return False
+
 
 class RelayServer:
     """
