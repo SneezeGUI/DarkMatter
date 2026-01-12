@@ -35,6 +35,7 @@ class SettingsPage:
         # UI widget references
         self.chk_headless: ctk.CTkCheckBox = None
         self.chk_verify_ssl: ctk.CTkCheckBox = None
+        self.chk_session_persist: ctk.CTkCheckBox = None
         self.combo_browser: ctk.CTkComboBox = None
         self.btn_browser_expand: ctk.CTkButton = None
         self.browser_paths_frame: ctk.CTkFrame = None
@@ -143,7 +144,17 @@ class SettingsPage:
         )
         if self.settings.get("verify_ssl", True):
             self.chk_verify_ssl.select()
-        self.chk_verify_ssl.pack(anchor="w", padx=20, pady=(5, 15))
+        self.chk_verify_ssl.pack(anchor="w", padx=20, pady=5)
+
+        self.chk_session_persist = ctk.CTkCheckBox(
+            card,
+            text="Persist Session Cookies (maintain cookies across runs)",
+            fg_color=COLORS["accent"],
+            hover_color=COLORS["accent_hover"],
+        )
+        if self.settings.get("session_persistence", False):
+            self.chk_session_persist.select()
+        self.chk_session_persist.pack(anchor="w", padx=20, pady=(5, 15))
 
     def _setup_browser_settings(self, parent: ctk.CTkFrame) -> None:
         """Set up the browser settings card."""

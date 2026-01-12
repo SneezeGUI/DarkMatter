@@ -6,6 +6,8 @@ IP detection, and header leakage.
 """
 from dataclasses import dataclass, field
 from enum import Enum
+from threading import RLock
+from typing import Dict, List, Optional, Type
 
 
 class ValidatorType(Enum):
@@ -348,22 +350,112 @@ class WhatIsMyIpValidator(Validator):
             result.real_ip_exposed = True
 
 
-# Default validators list - ordered by reliability
-DEFAULT_VALIDATORS: list[Validator] = [
-    HttpBinValidator(),
-    IpApiValidator(),
-    IpifyValidator(),
-    IpInfoValidator(),
-    AzenvValidator(),
-    WhatIsMyIpValidator(),
-]
+class ValidatorRegistry:
+    """Registry for managing proxy validators."""
+    _instance = None
+    _lock = RLock()
+    _validators: Dict[str, Type["Validator"]] = {}
+    _enabled: Dict[str, bool] = {}
+
+    def __new__(cls):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+            return cls._instance
+
+    @classmethod
+    def register(cls, name: str, validator_class: Type["Validator"], enabled: bool = True):
+        """Register a new validator."""
+        with cls._lock:
+            cls._validators[name] = validator_class
+            cls._enabled[name] = enabled
+
+    @classmethod
+    def unregister(cls, name: str):
+        """Unregister a validator."""
+        with cls._lock:
+            if name in cls._validators:
+                del cls._validators[name]
+                if name in cls._enabled:
+                    del cls._enabled[name]
+
+    @classmethod
+    def get(cls, name: str) -> Optional[Type["Validator"]]:
+        """Get validator class by name."""
+        with cls._lock:
+            return cls._validators.get(name)
+
+    @classmethod
+    def get_all(cls) -> List[Type["Validator"]]:
+        """Get all registered validator classes."""
+        with cls._lock:
+            return list(cls._validators.values())
+
+    @classmethod
+    def get_enabled(cls) -> List[Type["Validator"]]:
+        """Get only enabled validator classes."""
+        with cls._lock:
+            return [v for name, v in cls._validators.items() if cls._enabled.get(name, False)]
+
+    @classmethod
+    def enable(cls, name: str):
+        """Enable a validator."""
+        with cls._lock:
+            if name in cls._validators:
+                cls._enabled[name] = True
+
+    @classmethod
+    def disable(cls, name: str):
+        """Disable a validator."""
+        with cls._lock:
+            if name in cls._validators:
+                cls._enabled[name] = False
+
+    @classmethod
+    def is_enabled(cls, name: str) -> bool:
+        """Check if a validator is enabled."""
+        with cls._lock:
+            return cls._enabled.get(name, False)
+
+    @classmethod
+    def list_validators(cls) -> List[dict]:
+        """List all validators with their status."""
+        with cls._lock:
+            return [
+                {
+                    "name": name,
+                    "class": v,
+                    "enabled": cls._enabled.get(name, False)
+                }
+                for name, v in cls._validators.items()
+            ]
 
 
-def get_validator_by_name(name: str) -> Validator | None:
+# Auto-register existing validators
+ValidatorRegistry.register("httpbin.org", HttpBinValidator)
+ValidatorRegistry.register("ip-api.com", IpApiValidator)
+ValidatorRegistry.register("ipify.org", IpifyValidator)
+ValidatorRegistry.register("ipinfo.io", IpInfoValidator)
+ValidatorRegistry.register("azenv.net", AzenvValidator)
+ValidatorRegistry.register("wtfismyip.com", WhatIsMyIpValidator)
+
+
+# Default validators list - backward compatibility alias
+# Instantiates enabled validators from registry
+DEFAULT_VALIDATORS: List[Validator] = [cls() for cls in ValidatorRegistry.get_enabled()]
+
+
+def get_validator_by_name(name: str) -> Optional[Validator]:
     """Get a validator instance by name."""
+    # First check default list for backward compatibility with existing instances
     for v in DEFAULT_VALIDATORS:
         if v.name == name:
             return v
+            
+    # Fallback to registry if not in default list (e.g. newly registered)
+    cls = ValidatorRegistry.get(name)
+    if cls and ValidatorRegistry.is_enabled(name):
+        return cls()
     return None
 
 

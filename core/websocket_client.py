@@ -11,9 +11,8 @@ import hmac
 import json
 import logging
 import time
-from collections.abc import Callable
 from collections import deque
-from typing import Optional
+from collections.abc import Callable
 
 import aiohttp
 
@@ -30,6 +29,7 @@ class WebSocketClient:
     - Message queue for offline resilience
     - Automatic heartbeat
     - Command dispatcher
+    - Support for Direct, Relay, and Cloudflare modes
     """
 
     def __init__(
@@ -40,16 +40,18 @@ class WebSocketClient:
         slave_name: str = "slave",
         heartbeat_interval: int = 30,
         max_queue_size: int = 1000,
-        on_command: Optional[Callable] = None,
-        on_connected: Optional[Callable] = None,
-        on_disconnected: Optional[Callable] = None,
+        on_command: Callable | None = None,
+        on_connected: Callable | None = None,
+        on_disconnected: Callable | None = None,
+        connection_mode: str = "direct",
+        client_id: str | None = None,
     ):
         """
         Initialize WebSocket client.
 
         Args:
-            master_host: Master server hostname/IP
-            master_port: Master server port
+            master_host: Master/Relay server hostname/IP (or Cloudflare URL)
+            master_port: Master/Relay server port (ignored for Cloudflare)
             secret_key: Shared secret for HMAC authentication
             slave_name: Name of this slave node
             heartbeat_interval: Heartbeat interval in seconds
@@ -57,11 +59,25 @@ class WebSocketClient:
             on_command: Callback for commands (command_type, params)
             on_connected: Callback when connected to master
             on_disconnected: Callback when disconnected from master
+            connection_mode: "direct", "relay", or "cloudflare"
+            client_id: Optional persistent client ID (for relay mode)
         """
         if not secret_key or len(secret_key) < 32:
             raise ValueError("secret_key must be at least 32 characters")
 
-        self.master_url = f"ws://{master_host}:{master_port}/ws"
+        self.connection_mode = connection_mode.lower()
+        self.client_id = client_id
+
+        # Build URL based on mode
+        if self.connection_mode == "cloudflare":
+            # master_host is the full Cloudflare URL (e.g., wss://tunnel.example.com)
+            if master_host.startswith(("ws://", "wss://")):
+                self.master_url = master_host.rstrip("/") + "/ws"
+            else:
+                self.master_url = f"wss://{master_host}/ws"
+        else:
+            self.master_url = f"ws://{master_host}:{master_port}/ws"
+
         self.secret_key = secret_key.encode()
         self.slave_name = slave_name
         self.heartbeat_interval = heartbeat_interval
@@ -73,9 +89,9 @@ class WebSocketClient:
         self.on_disconnected = on_disconnected
 
         # State
-        self.ws: Optional[aiohttp.ClientWebSocketResponse] = None
-        self.session: Optional[aiohttp.ClientSession] = None
-        self.session_token: Optional[str] = None
+        self.ws: aiohttp.ClientWebSocketResponse | None = None
+        self.session: aiohttp.ClientSession | None = None
+        self.session_token: str | None = None
         self.connected = False
         self._running = False
 
@@ -83,9 +99,9 @@ class WebSocketClient:
         self.message_queue: deque = deque(maxlen=max_queue_size)
 
         # Tasks
-        self._heartbeat_task: Optional[asyncio.Task] = None
-        self._receiver_task: Optional[asyncio.Task] = None
-        self._sender_task: Optional[asyncio.Task] = None
+        self._heartbeat_task: asyncio.Task | None = None
+        self._receiver_task: asyncio.Task | None = None
+        self._sender_task: asyncio.Task | None = None
 
         # Reconnection parameters
         self.reconnect_delay = 1  # Initial delay
@@ -203,13 +219,9 @@ class WebSocketClient:
 
     async def _authenticate(self) -> bool:
         """
-        Authenticate with master using HMAC challenge-response.
+        Authenticate with master/relay using HMAC challenge-response.
 
-        Flow:
-        1. Receive challenge from server
-        2. Compute HMAC(secret + challenge)
-        3. Send response with slave name
-        4. Receive session token on success
+        Supports both direct mode (to MasterServer) and relay mode (to RelayServer).
         """
         try:
             # Wait for challenge
@@ -225,7 +237,8 @@ class WebSocketClient:
                 self.logger.error(f"Expected auth_challenge, got {data.get('type')}")
                 return False
 
-            challenge = data.get("payload", {}).get("challenge")
+            # Get challenge - relay server sends it directly, master wraps in payload
+            challenge = data.get("challenge") or data.get("payload", {}).get("challenge")
             if not challenge:
                 self.logger.error("No challenge in auth_challenge")
                 return False
@@ -235,11 +248,24 @@ class WebSocketClient:
                 self.secret_key, challenge.encode(), hashlib.sha256
             ).hexdigest()
 
+            # Build auth response based on mode
+            if self.connection_mode == "relay":
+                # Relay server expects different payload structure
+                auth_payload = {
+                    "response": response_hmac,
+                    "client_type": "agent",
+                    "name": self.slave_name,
+                    "id": self.client_id or self.slave_name,
+                }
+            else:
+                # Direct mode - original MasterServer format
+                auth_payload = {
+                    "hmac": response_hmac,
+                    "slave_name": self.slave_name,
+                }
+
             # Send response
-            await self._send_message(
-                MessageType.AUTH_RESPONSE,
-                {"hmac": response_hmac, "slave_name": self.slave_name},
-            )
+            await self._send_message(MessageType.AUTH_RESPONSE, auth_payload)
 
             # Wait for auth result
             msg = await asyncio.wait_for(self.ws.receive(), timeout=10.0)
@@ -252,11 +278,15 @@ class WebSocketClient:
             msg_type = data.get("type")
 
             if msg_type == MessageType.AUTH_SUCCESS.value:
-                self.session_token = data.get("payload", {}).get("session_token")
-                self.logger.info("Authentication successful")
+                # Session token can be in payload or directly in data
+                self.session_token = (
+                    data.get("session_token") or
+                    data.get("payload", {}).get("session_token")
+                )
+                self.logger.info(f"Authentication successful ({self.connection_mode} mode)")
                 return True
             elif msg_type == MessageType.AUTH_FAILURE.value:
-                reason = data.get("payload", {}).get("reason", "Unknown")
+                reason = data.get("reason") or data.get("payload", {}).get("reason", "Unknown")
                 self.logger.error(f"Authentication failed: {reason}")
                 return False
             else:

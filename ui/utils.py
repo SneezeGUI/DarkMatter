@@ -104,6 +104,7 @@ class Utils:
             "mode": "standalone",  # "standalone", "master", "slave"
             "master_host": "127.0.0.1",
             "master_port": 8765,
+            "master_secret_key": "",
             "slave_secret_key": "",
             "slave_name": "slave-01",
         }

@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -47,6 +48,7 @@ class ProxyConfig:
     password: str | None = None
     protocol: str = "http"  # http, socks5
     score: float = 0.0
+    source: str = ""
 
     def to_curl_cffi_format(self) -> str:
         """Returns proxy string formatted for curl_cffi."""
@@ -206,3 +208,24 @@ class ProxyCheckResult:
     anonymity: str = "Unknown"  # "Elite", "Anonymous", "Transparent"
     score: float = 0.0
     bytes_transferred: int = 0  # Total bytes (request + response + TLS overhead)
+
+
+@dataclass
+class SessionData:
+    domain: str
+    cookies: list[dict]
+    last_used: float
+    created: float
+
+
+@dataclass
+class SourceHealth:
+    url: str
+    total_scraped: int = 0
+    total_alive: int = 0
+    total_dead: int = 0
+    avg_score: float = 0.0
+    avg_speed_ms: float = 0.0
+    last_check: float = 0.0  # timestamp
+    created: float = field(default_factory=time.time)
+    check_history: list[dict] = field(default_factory=list)  # Last N check summaries

@@ -15,6 +15,7 @@ from .constants import (
 )
 from .header_manager import HeaderManager
 from .models import ProxyCheckResult, ProxyConfig
+from .source_health_tracker import SourceHealthTracker
 from .validators import (
     Validator,
     ValidatorResult,
@@ -226,6 +227,7 @@ def lookup_geoip(ip: str) -> dict:
 class ThreadedProxyManager:
     def __init__(self):
         self.regex_pattern = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}:\d{2,5}\b")
+        self.health_tracker = SourceHealthTracker()
 
     def scrape(
         self,
@@ -236,7 +238,8 @@ class ThreadedProxyManager:
         on_progress: Callable[[int], None] = None,
     ) -> list[ProxyConfig]:
         """Scrapes proxies from provided source URLs using threads."""
-        found_proxies: set[tuple] = set()
+        found_proxies_map: dict[tuple, str] = {}
+        lock = logging.threading.Lock()
 
         def fetch_source(url: str):
             try:
@@ -252,6 +255,9 @@ class ThreadedProxyManager:
                 response = std_requests.get(
                     url, timeout=SCRAPE_TIMEOUT_SECONDS, headers=h, proxies=proxies
                 )
+
+                proxies_found_in_source = 0
+
                 if response.status_code == 200:
                     if on_progress:
                         on_progress(len(response.content))
@@ -279,7 +285,22 @@ class ThreadedProxyManager:
                     for m in matches:
                         ip, port = m.split(":")
                         for proto in valid_protos:
-                            found_proxies.add((ip, int(port), proto))
+                            key = (ip, int(port), proto)
+                            with lock:
+                                if key not in found_proxies_map:
+                                    found_proxies_map[key] = url
+                                    proxies_found_in_source += 1
+
+                # Record scraping stats for this source
+                self.health_tracker.record_check(
+                    url,
+                    scraped=proxies_found_in_source,
+                    alive=0,
+                    dead=0,
+                    avg_score=0.0,
+                    avg_speed=0.0
+                )
+
             except Exception as e:
                 logging.debug(f"Error scraping {url}: {e}")
 
@@ -290,8 +311,8 @@ class ThreadedProxyManager:
             )
 
         results = []
-        for ip, port, proto in found_proxies:
-            results.append(ProxyConfig(host=ip, port=port, protocol=proto))
+        for (ip, port, proto), source in found_proxies_map.items():
+            results.append(ProxyConfig(host=ip, port=port, protocol=proto, source=source))
 
         return results
 
@@ -382,6 +403,9 @@ class ThreadedProxyManager:
                 res = f.result()
                 if res:
                     valid_results_list.append(res)
+
+        # Update source health stats
+        self._update_source_health_from_checks(proxies, valid_results_list)
 
         return valid_results_list
 
@@ -727,3 +751,54 @@ class ThreadedProxyManager:
                 continue
 
         return False
+
+    def _update_source_health_from_checks(
+        self, all_proxies: list[ProxyConfig], active_results: list[ProxyCheckResult]
+    ):
+        """
+        Aggregate check results by source and update health tracker.
+        """
+        if not self.health_tracker:
+            return
+
+        # Initialize counters per source
+        source_stats = {}  # source -> {alive: 0, scores: [], speeds: []}
+
+        # Count total proxies per source (to calculate dead count later)
+        source_totals = {}
+        for p in all_proxies:
+            if not p.source:
+                continue
+            source_totals[p.source] = source_totals.get(p.source, 0) + 1
+            if p.source not in source_stats:
+                source_stats[p.source] = {"alive": 0, "scores": [], "speeds": []}
+
+        # Process active results
+        for res in active_results:
+            src = res.proxy.source
+            if not src:
+                continue
+
+            if src in source_stats:
+                stats = source_stats[src]
+                stats["alive"] += 1
+                stats["scores"].append(res.score)
+                stats["speeds"].append(res.speed)
+
+        # Calculate and record
+        for source, total in source_totals.items():
+            stats = source_stats[source]
+            alive = stats["alive"]
+            dead = total - alive
+
+            avg_score = sum(stats["scores"]) / alive if alive > 0 else 0.0
+            avg_speed = sum(stats["speeds"]) / alive if alive > 0 else 0.0
+
+            self.health_tracker.record_check(
+                source,
+                scraped=0,  # Already recorded during scrape
+                alive=alive,
+                dead=dead,
+                avg_score=avg_score,
+                avg_speed=avg_speed,
+            )

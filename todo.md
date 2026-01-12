@@ -82,15 +82,41 @@
 
 ---
 
-## In Progress
+## Completed (v3.7.1 - 2025-12-23)
 
-### v3.7.0 Master/Slave Architecture
-- [x] **Phase 1: Communication Layer** - WebSocket server/client with HMAC authentication *(2025-12-23)*
-- [ ] **Phase 2: Headless Client** - `slave.py` entry point for Linux nodes
-- [ ] **Phase 3: Master GUI Components** - Master control page and scanner results
-- [ ] **Phase 4: SSH/RDP Scanner** - Network scanning capabilities
-- [ ] **Phase 5: Linux Deployment** - systemd service and Ansible playbooks
-- [ ] **Phase 6: Integration & Testing** - End-to-end verification
+### v3.7.1 Connection Modes - NAT Traversal Options
+- [x] **Direct Mode** - Standard WebSocket connection for LAN/port-forwarded setups
+- [x] **Relay Mode** - NAT traversal via VPS relay server (both sides connect outbound)
+- [x] **Cloudflare Tunnel Mode** - Secure WebSocket through Cloudflare (hidden IP, DDoS protection)
+- [x] **Mode Selector UI** - Segmented button in Master Control page (Direct/Relay/Cloudflare)
+- [x] **Relay Server** - `relay.py` entry point with `core/relay_server.py` routing
+- [x] **Relay Client** - `core/relay_client.py` for Controller connecting to relay
+- [x] **Relay Deployment** - `deploy/dm-relay.service` + `deploy/install-relay.sh`
+- [x] **Cloudflare Docs** - `docs/cloudflare-tunnel.md` with quick start and permanent setup
+- [x] **Updated Packager** - `package_server.py` includes relay components (82.6KB, 25 files)
+- [x] **Slave CLI** - Added `--mode` argument and `DM_CONNECTION_MODE` env var
+
+---
+
+## Completed (v3.7.0 - 2025-12-23)
+
+### v3.7.0 Master/Slave Architecture - ALL PHASES COMPLETE
+- [x] **Phase 1: Communication Layer** - WebSocket server/client with HMAC authentication
+- [x] **Phase 2: Headless Client** - `slave.py` entry point with command dispatcher
+- [x] **Phase 3: Master GUI Components** - Master control page with server management, slave list, task distribution
+- [x] **Phase 4: SSH/RDP Scanner** - Core scanner module complete
+  - ✅ `core/scanner.py` - NetworkScanner with async port scanning, SSH/RDP detection
+  - ✅ `_handle_start_scan` in SlaveController - Slave-side scan execution
+  - ✅ `start_scan_on_slaves` in MasterServer - Master-side command distribution
+  - ✅ Scanner UI controls in Master Control page
+  - ✅ 39 scanner tests + 24 MasterServer tests (all passing)
+- [x] **Phase 5: Linux Deployment** - systemd service and install scripts
+  - ✅ `deploy/dm-slave.service` - systemd service with security hardening
+  - ✅ `deploy/install.sh` - Automated Debian/Ubuntu installer
+  - ✅ `deploy/uninstall.sh` - Clean uninstaller
+- [x] **Phase 6: Integration & Testing** - End-to-end verification
+  - ✅ `tests/test_integration.py` - 11 integration tests
+  - ✅ 129 total tests passing
 
 ---
 
@@ -133,12 +159,22 @@
 
 ## Backlog
 
-### v3.7.0 Master/Slave (In Progress - See "In Progress" section above)
-- [x] **Communication Layer:** WebSocket with HMAC authentication *(Phase 1 Complete)*
-- [ ] **Headless Client:** `slave.py` for Linux nodes *(Phase 2)*
-- [ ] **Master GUI:** `ui/pages/master_control.py` for managing slaves *(Phase 3)*
-- [ ] **Scanner Module:** SSH/RDP detection and credential testing *(Phase 4)*
-- [ ] **Deployment:** systemd service files and install scripts *(Phase 5)*
+### v3.7.1 Connection Modes - COMPLETE
+- [x] **Direct Mode:** Standard WebSocket for LAN/port-forwarded setups
+- [x] **Relay Mode:** NAT traversal via VPS relay server
+- [x] **Cloudflare Tunnel Mode:** Secure WebSocket through Cloudflare
+- [x] **Mode Selector UI:** Segmented button in Master Control
+- [x] **Relay Deployment:** systemd service + install script for relay server
+- [x] **Documentation:** Cloudflare Tunnel setup guide
+
+### v3.7.0 Master/Slave - COMPLETE
+- [x] **Communication Layer:** WebSocket with HMAC authentication *(Phase 1)*
+- [x] **Headless Client:** `slave.py` + `SlaveController` command dispatcher *(Phase 2)*
+- [x] **Master GUI:** `ui/pages/master_control.py` + `core/master_server.py` *(Phase 3)*
+- [x] **Scanner Module:** `core/scanner.py` with NetworkScanner class *(Phase 4)*
+- [x] **Deployment:** `deploy/` with systemd service and install scripts *(Phase 5)*
+- [x] **Integration Tests:** `tests/test_integration.py` with 11 tests *(Phase 6)*
+- [ ] **Scanner Results Display:** Dedicated panel for scan results *(Optional Enhancement)*
 
 ### Codebase Structure & Quality
 - [ ] **Standardize Testing:** Add more tests for engine logic and validators
@@ -159,16 +195,21 @@
 - [ ] **File-Based Logging:** Optional file logging with rotation for debugging long sessions
 - [ ] **Session Export:** Export session statistics (Success/Fail/Proxy Count) to CSV/JSON
 
-### Master/Slave & Security Features (v3.7.0)
-- [x] **Key Exchange:** HMAC-SHA256 authentication with challenge-response *(Phase 1 Complete)*
-- [x] **Data Sync:** WebSocket communication layer with message routing *(Phase 1 Complete)*
-- [x] **Testing:** 15 WebSocket tests covering auth, messaging, heartbeat, reconnection *(Phase 1 Complete)*
-- [ ] **Headless Client:** Develop CLI (`slave.py`) for proxy scraping and IP/port scanning *(Phase 2)*
-- [ ] **SSH/RDP Scanner:** Integrate modules for SSH/RDP detection and credential scanning *(Phase 4)*
-- [ ] **Master GUI:** Design separate page for discovered SSH/RDP servers *(Phase 3)*
-- [ ] **Error Handling:** Implement robust error reporting and retry mechanisms *(Phase 6)*
-- [ ] **Configuration:** Define master/slave configuration parameters in Settings *(Phase 3)*
-- [ ] **Deployment:** systemd service files, install scripts, Ansible playbooks *(Phase 5)*
+### Master/Slave & Security Features (v3.7.0-3.7.1) - COMPLETE
+- [x] **Key Exchange:** HMAC-SHA256 authentication with challenge-response *(Phase 1)*
+- [x] **Data Sync:** WebSocket communication layer with message routing *(Phase 1)*
+- [x] **Testing:** 129 total tests (15 WebSocket + 24 SlaveController + 24 MasterServer + 39 Scanner + 11 Integration + others)
+- [x] **Headless Client:** CLI (`slave.py`) with SlaveController command dispatcher *(Phase 2)*
+- [x] **Master GUI:** `master_control.py` with server management, slave list, task distribution *(Phase 3)*
+- [x] **MasterServer:** Thread-safe wrapper for WebSocket server with GUI callbacks *(Phase 3)*
+- [x] **SSH/RDP Scanner:** `core/scanner.py` with NetworkScanner class *(Phase 4)*
+- [x] **Scanner Integration:** `_handle_start_scan` in SlaveController, `start_scan_on_slaves` in MasterServer *(Phase 4)*
+- [x] **Scanner UI:** Targets/Ports input + Scan button in Master Control page *(Phase 4)*
+- [x] **Deployment:** `deploy/dm-slave.service`, `deploy/install.sh`, `deploy/uninstall.sh` *(Phase 5)*
+- [x] **Integration Testing:** `tests/test_integration.py` with 11 tests *(Phase 6)*
+- [x] **Connection Modes:** Direct, Relay, Cloudflare Tunnel modes for NAT traversal *(v3.7.1)*
+- [x] **Relay Server:** `relay.py` + `core/relay_server.py` + deployment scripts *(v3.7.1)*
+- [ ] **Scanner Results Page:** Dedicated display for discovered SSH/RDP servers *(Optional Enhancement)*
 
 ---
 

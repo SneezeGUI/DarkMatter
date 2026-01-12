@@ -11,8 +11,13 @@ import logging
 import random
 import re
 from collections.abc import Callable
+from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from .browser_manager import BrowserManager
+
+if TYPE_CHECKING:
+    from .session_manager import SessionManager
 from .constants import (
     AKAMAI_MARKERS,
     BROWSER_VIEWPORTS,
@@ -383,6 +388,7 @@ class PlaywrightTrafficEngine:
         proxies: list[ProxyConfig],
         on_update: Callable[[TrafficStats], None] | None = None,
         on_log: Callable[[str], None] | None = None,
+        session_manager: "SessionManager | None" = None,
     ):
         """
         Initialize the browser engine.
@@ -392,6 +398,7 @@ class PlaywrightTrafficEngine:
             proxies: List of proxy configurations
             on_update: Callback for stats updates
             on_log: Callback for log messages to GUI
+            session_manager: Optional session manager for cookie persistence
         """
         if not playwright_available:
             raise ImportError(
@@ -402,10 +409,13 @@ class PlaywrightTrafficEngine:
         self.proxies = self._filter_browser_proxies(list(proxies))  # Filter and copy
         self.on_update = on_update
         self.on_log = on_log
+        self.session_manager = session_manager
         self.stats = TrafficStats()
         self.running = False
         self._initial_proxy_count = len(proxies)
         self._filtered_proxy_count = len(self.proxies)
+        # Extract domain for session management
+        self._target_domain = urlparse(config.target_url).netloc
 
         # Get browser executable path from config
         self._executable_path = config.browser.get_executable_path()
@@ -562,6 +572,12 @@ class PlaywrightTrafficEngine:
             "color_scheme": "light",
             "screen": {"width": viewport[0], "height": viewport[1]},
         }
+
+        # Load persisted cookies from session manager
+        if self.session_manager:
+            session_data = self.session_manager.get_session(self._target_domain)
+            if session_data and session_data.cookies:
+                context_options["storage_state"] = {"cookies": session_data.cookies}
 
         # Add extra HTTP headers for Client Hints (Chromium)
         if os_profile.get("sec_ch_ua"):
@@ -1577,6 +1593,18 @@ class PlaywrightTrafficEngine:
 
     async def _cleanup(self):
         """Clean up browser resources."""
+        # Save cookies from contexts before closing
+        if self.session_manager and self._contexts:
+            try:
+                # Get cookies from the first active context
+                context, _proxy, _meta = self._contexts[0]
+                cookies = await context.cookies()
+                if cookies:
+                    self.session_manager.save_session(self._target_domain, cookies)
+                    logging.debug(f"Saved {len(cookies)} cookies for {self._target_domain}")
+            except Exception as e:
+                logging.debug(f"Could not save session cookies: {e}")
+
         # Close contexts
         for context, _proxy, _meta in self._contexts:
             with contextlib.suppress(Exception):

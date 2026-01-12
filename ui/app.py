@@ -12,24 +12,23 @@ import requests
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("dark-blue")
 
+from core.config_builder import TrafficConfigBuilder  # noqa: E402
 from core.engine import AsyncTrafficEngine  # noqa: E402
+from core.engine_factory import EngineFactory  # noqa: E402
 from core.models import (  # noqa: E402
-    BrowserConfig,
-    BrowserSelection,
-    CaptchaConfig,
-    CaptchaProvider,
     EngineMode,
-    ProtectionBypassConfig,
     ProxyCheckResult,
     ProxyConfig,
-    TrafficConfig,
     TrafficStats,
 )
 from core.proxy_manager import ThreadedProxyManager  # noqa: E402
+from core.session_manager import SessionManager  # noqa: E402
+from core.settings_keys import SettingsKeys  # noqa: E402
 from core.validators import DEFAULT_VALIDATORS  # noqa: E402
 
 from .pages import (  # noqa: E402
     DashboardPage,
+    MasterControlPage,
     ProxyManagerPage,
     SettingsPage,
     StressTestPage,
@@ -102,7 +101,7 @@ class ModernTrafficBot(ctk.CTk):
             self, width=scaled(180), corner_radius=0, fg_color=COLORS["nav"]
         )
         self.sidebar.grid(row=0, column=0, sticky="nsew")
-        self.sidebar.grid_rowconfigure(4, weight=1)
+        self.sidebar.grid_rowconfigure(5, weight=1)
         self.sidebar.grid_propagate(False)  # Maintain width
 
         ctk.CTkLabel(
@@ -118,6 +117,7 @@ class ModernTrafficBot(ctk.CTk):
                 ("run", "🚀 Dashboard"),
                 ("proxy", "🛡️ Proxy Manager"),
                 ("stress", "💥 Stress Test"),
+                ("master", "🌐 Master Control"),
                 ("settings", "⚙️ Settings"),
             ]
         ):
@@ -137,10 +137,10 @@ class ModernTrafficBot(ctk.CTk):
 
         ctk.CTkLabel(
             self.sidebar,
-            text="v3.6.1",
+            text="v3.7.0",
             text_color=COLORS["text_dim"],
             font=("Roboto", scaled(10)),
-        ).grid(row=6, column=0, pady=scaled(15))
+        ).grid(row=7, column=0, pady=scaled(15))
 
     def setup_pages(self):
         self.pages = {}
@@ -149,6 +149,7 @@ class ModernTrafficBot(ctk.CTk):
         self.dashboard_page = DashboardPage(self)
         self.proxy_manager_page = ProxyManagerPage(self)
         self.stress_test_page = StressTestPage(self)
+        self.master_control_page = MasterControlPage(self)
         self.settings_page = SettingsPage(self)
 
         # Create page frames and setup UI
@@ -164,6 +165,9 @@ class ModernTrafficBot(ctk.CTk):
         self.pages["stress"] = ctk.CTkFrame(self, fg_color="transparent")
         self.stress_test_page.setup(self.pages["stress"])
         self._bind_stress_test_widgets()
+
+        self.pages["master"] = ctk.CTkFrame(self, fg_color="transparent")
+        self.master_control_page.setup(self.pages["master"])
 
         self.pages["settings"] = ctk.CTkFrame(self, fg_color="transparent")
         self.settings_page.setup(self.pages["settings"])
@@ -246,6 +250,7 @@ class ModernTrafficBot(ctk.CTk):
         p = self.settings_page
         self.chk_headless = p.chk_headless
         self.chk_verify_ssl = p.chk_verify_ssl
+        self.chk_session_persist = p.chk_session_persist
         self.combo_browser = p.combo_browser
         self.btn_browser_expand = p.btn_browser_expand
         self.browser_paths_frame = p.browser_paths_frame
@@ -953,6 +958,10 @@ class ModernTrafficBot(ctk.CTk):
         if grid_proxies and not self.checked_proxies:
             Utils.save_proxies(grid_proxies)
 
+        # Stop master server if running
+        if hasattr(self, "master_control_page"):
+            self.master_control_page.cleanup()
+
         self.destroy()
 
     def run_scraper(self):
@@ -1587,114 +1596,40 @@ class ModernTrafficBot(ctk.CTk):
 
         self.active_proxy_count = len(engine_proxies)
 
-        # Determine engine mode
-        engine_mode = self.settings.get("engine_mode", "curl")
+        # Merge current UI values with persistent settings for config building
+        runtime_settings = dict(self.settings)
+        runtime_settings[SettingsKeys.THREADS] = threads
+        runtime_settings[SettingsKeys.VIEWTIME_MIN] = v_min
+        runtime_settings[SettingsKeys.VIEWTIME_MAX] = v_max
+        runtime_settings[SettingsKeys.BURST_MODE] = bool(self.chk_burst_mode.get())
+        runtime_settings[SettingsKeys.BURST_REQUESTS] = int(self.slider_burst_size.get())
+        burst_sleep = int(self.slider_burst_sleep.get())
+        runtime_settings[SettingsKeys.BURST_SLEEP_MIN] = max(1, burst_sleep // 2)
+        runtime_settings[SettingsKeys.BURST_SLEEP_MAX] = burst_sleep
 
-        # Get browser selection and map to enum
-        browser_selected = self.settings.get("browser_selected", "auto").lower()
-        browser_selection_map = {
-            "auto": BrowserSelection.AUTO,
-            "chrome": BrowserSelection.CHROME,
-            "chromium": BrowserSelection.CHROMIUM,
-            "edge": BrowserSelection.EDGE,
-            "brave": BrowserSelection.BRAVE,
-            "firefox": BrowserSelection.FIREFOX,
-            "other": BrowserSelection.OTHER,
-        }
-        selected_browser = browser_selection_map.get(
-            browser_selected, BrowserSelection.AUTO
+        # Build config using centralized builder (eliminates magic strings)
+        config = TrafficConfigBuilder.from_settings(runtime_settings, url)
+
+        # Create session manager if persistence is enabled
+        session_manager = None
+        if self.settings.get("session_persistence", False):
+            session_manager = SessionManager()
+            self.log_safe("Session persistence enabled - cookies will be saved across runs")
+
+        # Create engine using factory pattern (handles fallback gracefully)
+        self.engine = EngineFactory.create_engine(
+            mode=config.engine_mode,
+            config=config,
+            proxies=engine_proxies,
+            on_update=self.on_engine_update,
+            on_log=self.log_safe,
+            session_manager=session_manager,
         )
 
-        # Get captcha primary provider
-        captcha_primary = self.settings.get("captcha_primary", "auto").lower()
-        captcha_provider_map = {
-            "auto": CaptchaProvider.AUTO,
-            "2captcha": CaptchaProvider.TWOCAPTCHA,
-            "anticaptcha": CaptchaProvider.ANTICAPTCHA,
-            "none": CaptchaProvider.NONE,
-        }
-        primary_provider = captcha_provider_map.get(
-            captcha_primary, CaptchaProvider.AUTO
-        )
-
-        # Build config with all settings
-        config = TrafficConfig(
-            target_url=url,
-            max_threads=threads,
-            total_visits=0,  # Infinite
-            min_duration=v_min,
-            max_duration=v_max,
-            headless=bool(self.settings.get("headless", True)),
-            verify_ssl=bool(self.settings.get("verify_ssl", True)),
-            engine_mode=(
-                EngineMode.BROWSER if engine_mode == "browser" else EngineMode.CURL
-            ),
-            browser=BrowserConfig(
-                selected_browser=selected_browser,
-                chrome_path=self.settings.get("browser_chrome_path", ""),
-                chromium_path=self.settings.get("browser_chromium_path", ""),
-                edge_path=self.settings.get("browser_edge_path", ""),
-                brave_path=self.settings.get("browser_brave_path", ""),
-                firefox_path=self.settings.get("browser_firefox_path", ""),
-                other_path=self.settings.get("browser_other_path", ""),
-                headless=bool(self.settings.get("browser_headless", True)),
-                max_contexts=self.settings.get("browser_contexts", 5),
-                locale=self.settings.get("browser_locale", "en-US"),
-                timezone=self.settings.get("browser_timezone", "America/New_York"),
-                stealth_enabled=bool(self.settings.get("browser_stealth", True)),
-            ),
-            captcha=CaptchaConfig(
-                twocaptcha_key=self.settings.get("captcha_2captcha_key", ""),
-                anticaptcha_key=self.settings.get("captcha_anticaptcha_key", ""),
-                primary_provider=primary_provider,
-                fallback_enabled=bool(
-                    self.settings.get("captcha_fallback_enabled", True)
-                ),
-                timeout_seconds=self.settings.get("captcha_timeout", 120),
-            ),
-            protection=ProtectionBypassConfig(
-                cloudflare_enabled=bool(self.settings.get("cloudflare_bypass", True)),
-                cloudflare_wait_seconds=self.settings.get("cloudflare_wait", 10),
-                akamai_enabled=bool(self.settings.get("akamai_bypass", True)),
-                auto_solve_captcha=bool(self.settings.get("auto_solve_captcha", True)),
-            ),
-            # Burst mode settings
-            burst_mode=bool(self.chk_burst_mode.get()),
-            burst_requests=int(self.slider_burst_size.get()),
-            burst_sleep_min=max(1, int(self.slider_burst_sleep.get()) // 2),
-            burst_sleep_max=int(self.slider_burst_sleep.get()),
-        )
-
-        # Initialize appropriate engine based on mode
-        if engine_mode == "browser":
-            try:
-                from core.browser_engine import PlaywrightTrafficEngine
-
-                self.engine = PlaywrightTrafficEngine(
-                    config,
-                    engine_proxies,
-                    on_update=self.on_engine_update,
-                    on_log=self.log_safe,
-                )
-                self.log_safe("Starting Browser Engine (stealth mode)...")
-            except ImportError as e:
-                self.log_safe(f"Browser engine not available: {e}")
-                self.log_safe(
-                    "Falling back to curl engine. Install: pip install playwright && playwright install chromium"
-                )
-                self.engine = AsyncTrafficEngine(
-                    config,
-                    engine_proxies,
-                    on_update=self.on_engine_update,
-                    on_log=self.log_safe,
-                )
+        # Log which engine was selected
+        if config.engine_mode == EngineMode.BROWSER:
+            self.log_safe("Starting Browser Engine (stealth mode)...")
         else:
-            self.engine = AsyncTrafficEngine(
-                config,
-                engine_proxies,
-                on_update=self.on_engine_update,
-                on_log=self.log_safe,
-            )
             self.log_safe("Starting Fast Engine (curl)...")
 
         # Run Async Loop
@@ -1842,6 +1777,7 @@ class ModernTrafficBot(ctk.CTk):
             self.settings["hide_dead"] = self.chk_hide_dead.get()
             self.settings["headless"] = self.chk_headless.get()
             self.settings["verify_ssl"] = self.chk_verify_ssl.get()
+            self.settings["session_persistence"] = self.chk_session_persist.get()
 
             # Engine mode (from dashboard selector)
             mode_value = self.mode_selector.get()

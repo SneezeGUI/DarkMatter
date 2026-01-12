@@ -3,6 +3,8 @@ import contextlib
 import logging
 import random
 from collections.abc import Callable
+from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 from curl_cffi import requests
 
@@ -16,6 +18,9 @@ from .constants import (
 )
 from .models import ProxyConfig, TrafficConfig, TrafficStats
 
+if TYPE_CHECKING:
+    from .session_manager import SessionManager
+
 
 class AsyncTrafficEngine:
     def __init__(
@@ -24,11 +29,13 @@ class AsyncTrafficEngine:
         proxies: list[ProxyConfig],
         on_update: Callable[[TrafficStats], None] | None = None,
         on_log: Callable[[str], None] | None = None,
+        session_manager: "SessionManager | None" = None,
     ):
         self.config = config
         self.proxies = proxies
         self.on_update = on_update
         self.on_log = on_log
+        self.session_manager = session_manager
         self.stats = TrafficStats()
         self.running = False
         self._stop_event = asyncio.Event()
@@ -37,6 +44,8 @@ class AsyncTrafficEngine:
         self._proxies_in_use: set = set()
         self._proxy_lock = asyncio.Lock()
         self._proxy_index = 0  # For round-robin when all proxies are in use
+        # Extract domain for session management
+        self._target_domain = urlparse(config.target_url).netloc
 
     def _log(self, message: str):
         """Log message to both Python logger and GUI callback."""
@@ -109,6 +118,17 @@ class AsyncTrafficEngine:
             # Create fresh session for each request (clean cookies/TLS state per "user")
             session = requests.AsyncSession(impersonate=impersonate)
 
+            # Load persisted cookies if session manager is available
+            if self.session_manager:
+                session_data = self.session_manager.get_session(self._target_domain)
+                if session_data and session_data.cookies:
+                    for cookie in session_data.cookies:
+                        session.cookies.set(
+                            cookie.get("name", ""),
+                            cookie.get("value", ""),
+                            domain=cookie.get("domain", self._target_domain),
+                        )
+
             # Set proxy for this request
             proxies_dict = {"http": proxy, "https": proxy} if proxy else None
 
@@ -129,6 +149,14 @@ class AsyncTrafficEngine:
             if response.status_code in SUCCESS_STATUS_CODES:
                 self.stats.success += 1
                 logging.debug(f"Success: {response.status_code}")
+                # Save cookies from successful response
+                if self.session_manager and response.cookies:
+                    cookies_list = [
+                        {"name": c.name, "value": c.value, "domain": c.domain or self._target_domain}
+                        for c in response.cookies
+                    ]
+                    if cookies_list:
+                        self.session_manager.save_session(self._target_domain, cookies_list)
             else:
                 self.stats.failed += 1
                 logging.warning(f"Failed with status: {response.status_code}")

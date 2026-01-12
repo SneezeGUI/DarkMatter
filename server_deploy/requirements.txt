@@ -1,0 +1,26 @@
+# GUI Framework
+customtkinter>=5.2.0
+
+# User-Agent generation
+fake-useragent>=1.4.0
+
+# HTTP client with TLS fingerprinting
+curl_cffi>=0.7.0
+
+# Browser automation (optional - for browser engine mode)
+playwright>=1.40.0
+
+# Async HTTP client (optional - for captcha solving)
+aiohttp>=3.9.0
+
+# WebSocket support (for Master/Slave communication)
+websockets>=12.0
+
+# SSH client (for SSH scanner in v3.7.0)
+asyncssh>=2.14.0
+
+# GeoIP lookup (optional - for proxy location detection)
+geoip2>=4.8.0
+
+# Standard library dependencies (included for documentation)
+# asyncio, threading, queue, logging - all built-in
